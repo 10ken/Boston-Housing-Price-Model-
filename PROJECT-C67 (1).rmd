@@ -1,0 +1,419 @@
+---
+title: "STAC67 Report: Boston Housing Prices"
+author: "Kenneth Leung"
+date: "April 5, 2019"
+output:
+#  word_document: default
+  pdf_document: default
+#  word_document: default
+---
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE, echo=FALSE}
+# include = FALSE -> chunk not included in the doc after running 
+library("mosaic")
+library("car")
+library("MASS")
+```
+
+# Abstract
+
+In this case study, we are presented with a multitude of predictor variables that may account for changes in the housing prices of suburbs located in Boston. The dataset provided contains 506 observations on 13 predictors. The objective of this report is to investigate potential determining factors through research and statistical analysis using R to build a model to accurately predict Boston's suburb housing prices. 
+
+# Background and Significance
+In recent years, the development of real estate has become an important and essential part of economic growth. Buyers and sellers are constantly seeking for accurate valuations of housing property.  We built a regression model by exploring the influence of several predictor variables, using historical data. Such data was obtained from a study conducted in 1978, comparing the relationship between housing prices in Boston and surrounding air quality (Harrison & Rubinfield, 1978). As a result, this model is an asset to home buyers who wish to purchase a home meeting their structural, demographic, accessibility, and environmental needs, alongside with validating its cost. Likewise, sellers are able to use this model to identify key attributes to legitimize the price level of different suburbs. The model will also aid in predicting housing market trends. The goal of this paper is to investigate which variables are the most significant and impactful to the housing prices in Boston and compiling them in a linear regression model.
+
+# Exploratory Data Analysis
+The given data set contains 506 observation on 13 predictors that affect the house value which in this data is the 'Median value of owner-occupied homes' in thousands (MEDV).The 13 predictors are:
+
+**1. Per capita crime rate by town (x1)**
+Crime rate is the proportion of criminal occurrences relative to the number of citizens in each town. The higher the crime rate, the less likely a potential buyer would purchase property in that area. The mean and the median of this variable is 3.613 and 0.2565 respectively. 
+
+**2. Proportion of residential land zoned for lots over 25,000 sq. Ft. (x2)**
+Residential land, measured in square feet, is the proportion of lots over 25,000 square feet for residential use over all zoned land over 25,000 square feet. In general the less dense areas show a trend of higher prices than the more dense areas. The mean and the median of this variable is 11.36 and 0.00 respectively.
+
+**3. Proportion of non-retail business acres per town (x3)**
+Non-retail business land, measured in acres, is the proportion of non-retail business land relative to land size of the town. This includes real estate occupied for leisure, offices, healthcare, and residential use. The mean and the median of this variable is 11.14 and 9.69 respectively. 
+
+**4. Charles River dummy variable (x4)**
+This is a binary categorical variable indicating whether a suburb is in the general vicinity of the Charles River in Boston. The river has a history of being polluted and contaminated with bacteria and other chemicals (EPA.gov), potentially thwarting new buyers from purchasing property in this area. The mean and the median of this variable is 0.069 and 0.00 respectively.
+
+**5. Nitric oxide concentration (parts per 10 million) (x5)**
+Nitric Oxide, also known as NO and is measured in parts per 10 mills, is a gas pollutant shown to cause many respiratory health conditions. This variable describes the quantity of airborne nitric oxide in the given suburb (Weinberger 2001). The higher the pollution, the poorer the living conditions. The mean and the median of this variable is 0.5547 and 0.5380 respectively. 
+
+**6. Average number of rooms per dwelling (x6)**
+Average number of rooms per dwelling, represents spaciousness and in a certain sense, quality of housing. Dwellings, that have more rooms will tend to have a higher cost. The mean and the median of this variable is 6.285 and 6.208 respectively. 
+
+**7. Proportion of owner-occupied units built prior to 1940 (x7)**
+This number refers to the number of houses that are still occupied, of which are built before the year 1940. Older property tent to have lower house values compared to newer ones. The mean and the median of this variable is 68.57 and 77.50 respectively.
+
+**8. Weighted distances to five Boston employment centers (x8)**
+This variable measures the distances from the suburbs to five employment centers and then taking a weighted summary of those five distances. It just measures how close people in these suburbs are to where people may work. A buyer would prefer to buy property near there workplace. The mean and the median of this variable is 3.795 and 3.207 respectively. 
+
+**9. Index of accessibility to radial highways (x9)**
+This measures how close a property is too a highway. The more accessible the highway the more likely a buyer is to purchase the property. The mean and the median of this variable is 9.549 and 5.000 respectively.
+
+**10. Full-value property-tax rate per 10,000 (x10)**
+This variable measures the town's property tax rate. Higher property taxes may mean, for instance that the school in an area are better because public schools are often funded by property taxes. The mean and the median of this variable is 408.2 and 330.0 respectively. 
+
+**11. Pupil-teacher ratio by town (x11)**
+This ratio is the number of students who attend school divided by the number of teachers in the town. If the ratio is high, then the connection between students and teachers is relatively weak. Generally speaking, low ratio represents good education condition. The mean and the median of this variable is 18.46 and 19.05 respectively.
+
+**12. 1000(B - 0:63) where B is the proportion of African Americans by town (x12)**
+It is the proportion of the African Americans in the town. In the United States of America, African American populated neighbourhoods tend to be valued less than other neighbourhoods (NextCity). The mean and the median of this variable is 356.67 and 391.44 respectively.
+
+**13. A numeric vector of percentage values of lower status population (x13)**
+This variable describes the percentage of the population in a given suburb that are of lower economic status. The mean and the median of this variable is 12.65 and 11.36 respectively.
+
+# Model
+
+## Model Selection
+
+```{r, echo=FALSE}
+setwd("~/Documents/Kenneth/Courses/STAC67/Data Project")
+housingprop <- read.csv("housing.proper.csv")
+colnames(housingprop) <- c( "x1", "x2","x3","x4","x5","x6","x7","x8","x9","x10","x11","x12","x13","y")
+train <- housingprop[1:300,]
+test <- housingprop[301:506,]
+```
+
+For our model, we decided to split the data into a training set of size 300 and a validation set of size 206.
+To get a sense of collinearity among our independent variables, we produced a correlation matrix using `cor(train)`.
+We discovered a couple of large values ($\geq 0.7$), which may indicate multicollinearity.
+Therefore, we used `stepAIC` to reduce our variable space. 
+
+```
+fit1 <- lm(y ~ ., data = train)
+step = stepAIC(fit1, direction = "both")
+```
+
+The model with the lowest AIC value was chosen, which took the following predictor variables:
+
+```
+Step:  AIC=703.48
+y ~ x1 + x5 + x6 + x7 + x8 + x10 + x11 + x12 + x13
+```
+
+The variables that were removed were:
+
+* x2 = Proportion of residential land
+* x3 = Proportion of non-retail business acres
+* x4 = Charles River dummy variable
+* x9 = Accessibility to radial highways
+
+*A logical reasoning for the removal of these variables would be their mutual relation to Boston's industrialization at the time. Residential land and business land could be related to the abundance of factories in the area. Charles River had a history of pollution from artificial chemicals produced. Factories would have to be close to highways to be effective.*
+
+To test our model, we then plotted the residual vs fitted, normal Q-Q, scale-location, and residual vs leverage plots.
+Unfortunately, both the residual vs fitted plot and the scale-location plot had a curvature pattern, indicating potential non-linearity and heteroscedasticity.
+The other plots however, were fine though we did have a few concerns regarding outliers that we discuss later.
+The correlation matrix was also examined using `cor(f2)` and the model still had large correlation among variables.
+
+```
+aicfit <- lm(y ~ x1 + x5 + x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train)
+aicfitvar <- c("x1","x5","x6","x7","x8","x10","x11","x12","x13")
+f2 = train[aicfitvar]
+```
+
+```{r, echo=FALSE}
+aicfit <- lm(y ~ x1 + x5 + x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train) 
+aicfitvar <- c("x1","x5","x6","x7","x8","x10","x11","x12","x13")
+f2 = train[aicfitvar]
+par(mfrow=c(2,2))
+plot(aicfit)
+```
+
+In an attempt to solve our problems, we applied the natural log to our response variable ($\log(Y_i)$) and fitted another model with all of the original variables present.
+We then ran `stepAIC()` again, and obtained a new model with the lowest AIC with the variables $X1, X2, X3, X4, X9$ absent.
+
+The plots of the log model are shown below.
+
+```{r, echo=FALSE}
+aiclnfit <- lm(log(train$y) ~ x5 + x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train )
+aiclnfitvar <- c("x5","x6","x7","x8","x10","x11","x12","x13")
+f3 <- train[aiclnfitvar]
+par(mfrow=c(2,2))
+plot(aiclnfit)
+```
+
+The residual vs fitted values improved drastically as there was no longer a curvature pattern. However, the problem with the scale-location plot remained, and high correlation was still present in the `cor(f3)` matrix.
+
+We then used model tests to further narrow down our variable space.
+
+```{r, echo=FALSE}
+lnfit <- lm (log(train$y) ~ ., data = train)
+s <- summary(lnfit)$sigma
+n <- nrow(train)
+select_criteria = function(model, n, s)
+{
+  SSres <- sum(model$residuals^2)
+  Rsq <- summary(model)$r.squared
+  Rsq_adj <- summary(model)$adj.r.squared
+  p_prime <- length(model$coefficients)
+  C <- SSres/s^2 + 2*p_prime - n
+  AIC <- n*log(SSres) - n*log(n) + 2*p_prime
+  res <- c(SSres, Rsq, Rsq_adj, C, AIC)
+  names(res) <- c("SSres", "Rsq", "Rsq_adj", "C", "AIC")
+  return(res)
+}
+
+round(rbind(
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x8 + x9 + x10 + x11 + x12 + x13, data = train), n, s), #given by aic
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train), n, s), #x9 was insign in anova,omit
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train), n, s),#omit x5,not much change in x5
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x13, data = train), n, s),
+  
+  select_criteria(lm(log(train$y) ~ x5 + x7 + x8 + x10 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x8 + x10 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x10 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x8 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x8 + x10 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x5 + x6 + x7 + x8 + x10 + x11 + x13, data = train), n, s),
+  
+  select_criteria(lm(log(train$y) ~ x6 + x8 + x10 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x10 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x11 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x10 + x12 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x13, data = train), n, s),
+  select_criteria(lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x12, data = train), n, s)
+  
+), digits = 2)
+```
+
+We tested the top 3 models given in the output. The model we chose to use was Model [3] because it was one of the contenders for the best AIC and $R^2_{adj}$. It also had the lowest VIF values and mean VIF ($1.911$) compared to the other ones. There was a minor discrepancy in $R^2$ by switching to Model [3], which was acceptable. All in all, it was the best combination between the VIF, AIC, and $R^2_{adj}$ values. The resulting model was the same model from before with the exemption of variable $X5$.
+
+*A logical reasoning for taking out variable X5 (nitrous oxide concentration) would be its relation with industrialization. Factories would produce large quantities of NO, which means that the other predictor variables would have already provided an explanation for the data, rendering X5 redundant. This is also why $R^2_{adj}$ did not go down as much.*
+
+However, this model still had the problem of potential heteroscedasticity shown by the plots (plots omitted). We also attempted to center our predictor variables to their respective means, but it had negligible effects. This is the most we could do.
+
+Our final model is the model listed below:
+
+```
+fit5 <- lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train )
+```
+## Model Validation
+
+To validate our model, we took our 206 entries from the original split and tested it against our model.
+The $MSPE$ and the $MSRES$ are given below, respectively.
+
+```{r, echo=FALSE}
+fit5 <- lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train )
+newx5 <- test[, c(6,7,8,10,11,12,13)]
+colnames(newx5) <- c("x6","x7","x8","x10","x11","x12","x13")
+Y_pred <- predict(fit5, newx5)
+Y_obs <- log(test$y)
+n_star <- nrow(train)
+MSPE <- sum( (Y_obs-Y_pred)^2/n_star )
+MS_res <- (summary(fit5)$sigma)^2
+MSPE
+MS_res
+```
+This is good news, as $MSPE$ and $MSRES$ are both very close to each other, and both very low, indicating that the model constructed from our training set was accurate in predicting the values of the validation set. 
+
+## Model Diagnostics
+
+### Functional Form
+To check whether the functional form of the model was adequate, we plotted the residuals against the selected explanatory variables separately (plots omitted). Our analyses showed that all explanatory variables depicted randomness in the residuals except for x12. We attempted to find a suitable transofmration such as the inverse and log transformations on x12 and y to gain a better distribution of randomness of the residuals for x12, however there were no significant improvements to the residuals. Due to the laack and imporvement and significance of x12, we concluded that our model was of a proper functional form.
+
+<!-- DIAGNOSTICS CODE -->
+<!-- fit5 <- lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x12 + x13, data = train) -->
+<!-- summary(fit5) -->
+<!-- attach(train) -->
+<!-- boxcox(train) -->
+<!-- # Functional form -->
+<!-- par(mfrow = c(2,2), oma = c(1,1,0,0),  -->
+<!--     mar = c(2,2,2,2), tcl = -0.1, mgp = c(1,0,0)) -->
+<!-- plot(fit5$residuals~x6, xlab = "x6", ylab = "Residuals") -->
+<!-- #residuals are faily random, theref ore a lm is a fairly good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit5$residuals~x7, xlab = "x7", ylab = "Residuals")  -->
+<!-- #residuals are random, therefore a lm is a good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit5$residuals~x8, xlab = "x8", ylab = "Residuals")  -->
+<!-- #residuals are random, therefore a lm is a good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit5$residuals~x10, xlab = "x10", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #lm is a good fit for x10 -->
+<!-- plot(fit5$residuals~x11, xlab = "x11", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #lm is a good fit for x11 -->
+<!-- plot(fit5$residuals~ x12, xlab = "x12", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #unhealthy residual plot -->
+<!-- plot(fit5$residuals~x13, xlab = "x13", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #data is fairly random, is good fit for lm -->
+<!-- plot(fit5$residuals~fit5$fitted.values, xlab = "Fitted values", ylab = "Residuals")   -->
+<!-- #residuals are faily random, therefore a lm is a fairly good fit -->
+<!-- abline(h = 0) -->
+<!-- par(mfrow = c(1,1)) -->
+<!-- #therefore we see a lm is a good fit for the  -->
+
+<!-- #diagnostic for fit6 -->
+
+<!-- fit6 <- lm(log(train$y) ~ x6 + x7 + x8 + x10 + x11 + x13 + I(1/(x12)), data = train2) -->
+<!-- #log transformation on y and inverse transformation of predictor variable x12 -->
+<!-- summary(fit6) -->
+<!-- attach(train2) -->
+<!-- # Functional form -->
+<!-- par(mfrow = c(2,2), oma = c(1,1,0,0),  -->
+<!--     mar = c(2,2,2,2), tcl = -0.1, mgp = c(1,0,0)) -->
+<!-- plot(fit6$residuals~x6, xlab = "x6", ylab = "Residuals") -->
+<!-- #residuals are faily random, therefore a lm is a fairly good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit6$residuals~x7, xlab = "x7", ylab = "Residuals")  -->
+<!-- #residuals are random, therefore a lm is a good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit6$residuals~x8, xlab = "x8", ylab = "Residuals")  -->
+<!-- #residuals are random, therefore a lm is a good fit -->
+<!-- abline(h = 0) -->
+<!-- plot(fit6$residuals~x10, xlab = "x10", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #lm is a good fit for x10 -->
+<!-- plot(fit6$residuals~x11, xlab = "x11", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #lm is a good fit for x11 -->
+<!-- plot(fit6$residuals~ newx12, xlab = "x12", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #unhealthy residual plot -->
+<!-- plot(fit6$residuals~x13, xlab = "x13", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #data is fairly random, is good fit for lm -->
+<!-- plot(fit6$residuals~fit5$fitted.values, xlab = "Fitted values", ylab = "Residuals")   -->
+<!-- #residuals are faily random, therefore a lm is a fairly good fit -->
+<!-- abline(h = 0) -->
+<!-- par(mfrow = c(1,1)) -->
+<!-- #therefore we see a lm is a good fit for the  -->
+
+<!-- #an inverse transformation on only y gave an output which was the relfected plots of y -->
+<!--     #therefore no effect -->
+<!-- #consder a model with an inverse transformation on y and x12 at the same time -->
+<!-- yin <- train$y -->
+<!-- x12in <- train$x12 -->
+<!-- yinv <- (yin)^-1 -->
+<!-- x12inv <- (x12in)^-1 -->
+<!-- #set up new inverse objects for x12 and y -->
+<!-- train3 <- data.frame(train,yinv,x12inv) -->
+<!-- View((train3)) -->
+<!-- fit7 <- lm(yinv ~ x6 + x7 + x10 + x11 + x12inv + x13, data = train3) -->
+<!-- summary(fit7) -->
+<!-- anova(fit7) -->
+<!-- plot(fit7) -->
+<!-- #all predictors are still significant by pvalue.  -->
+<!-- # in selection criteria, there is a very negative AIC, very negative C value and 0.84 for R and Radj -->
+<!-- plot(fit7$residuals~ x12inv, xlab = "x12", ylab = "Residuals")   -->
+<!-- abline(h = 0) -->
+<!-- #no change in position with hetero/homo ??? -->
+<!-- ### -->
+
+### Outlying Y Values
+
+
+We investigated the possibility for outlying y observations by investigating the significance of the Studentized deleted residuals. Thereafter testing the residuals, there were no outlying y observations.
+
+```{r, echo=FALSE}
+lny <- log(train$y)
+# Statistical test
+#outlierTest(fit5)
+# Studentized deleted residuals
+t <- rstudent(fit5)
+alpha <- 0.05
+n <- length(lny)
+p_prime = length(coef(fit5))
+t_crit <- qt(1-alpha/(2*n),n-p_prime-1)
+#round(t,2)
+# t_crit #dont know what this is
+which(abs(t) > t_crit) #does this mean we have no y outliers?
+```
+
+### Outlying X Test
+
+A leverage value $P_{ii}$ is considered to be large according to the guideline:
+
+* $P_{ii} > 0.5$
+
+We also investigated the leverage points in our model by evaluating $P_{i,i}$, measuring the distance between the X values of observations and the center of the x-space. The conclusion of testing $P_{i,i}$ suggested there were no observations far away from the mean of x values, under the guidline of $P_{i,i}$>0.5.
+
+```{r, echo=FALSE}
+Pii <- hatvalues(fit5)
+#round(Pii, 2)                           #normal QQ plot shows us we have 3 outliers. Not sure why we have 0 number of outliers
+which(Pii > 2*p_prime/n)                #not entirely sure if normal QQ plot gives outliers
+which(Pii > 0.5)
+```
+
+Two main guidelines of determining influence points which are the following:
+
+* DFFITS
+* Cook's Distance
+
+We found observation 215 to be an influential point with a DFFITS 1.47, indicating it is influential in our model. Furthermore, we investigated the level of infleunce by measuring its Cook's Distance. The Cook Distance's value is 0.259 indicating the 215th observation has weak influence on the fitted values because its value is less than the 20th percentile of F(8,292). Therefore we decided to keep this obseration in our model.
+
+Below are the results of the three tests, respectively.
+
+```{r, echo=FALSE}
+DFFITS <- dffits(fit5)
+which(DFFITS > 1)
+D <- cooks.distance(fit5)
+which(D > qf(0.2, p_prime, n-p_prime))
+DFBETAS <- dfbetas(fit5)
+
+```
+
+Once again, some tests indicate influence points and some fail to reveal influence points.
+The existence of "true" outliers cannot be affirmed.
+
+### Multicollinearity
+
+The formal method of testing for multicollinearity is the VIF test.
+We tested multiple models and `fit5` obtained the best score.
+Below is the output of the VIF test and the mean VIF, respectively.
+
+```{r, echo=FALSE}
+VIF <- vif(fit5)
+VIF
+VIFbar <- mean(vif(fit5))
+VIFbar
+```
+
+Each individual VIF value as well as the mean VIF are all sufficiently low ($\leq 3$). Compared to the mean VIF of the model with all variables (2.59), the current model `fit5` has better performance. This means that this model handles multicollinearity decently well.
+
+# Discussion/Conclusion
+
+  The goal of the study was to construct an accurate model for predicting housing prices of suburbs given demographic, environmental, and accessibility information of the suburb. Our final model has the log transformed price as the response variable and the following variables as the predictors: 
+
+* average number of rooms per dwelling
+* proportion of owner-occupied units built prior to 1940 
+* weighted distances to five Boston employment centers 
+* full-value property-tax rate per 10,000 
+* pupil-teacher ratio by town 
+* proportion of African Americans 
+* percentage values of lower status population
+
+Although our model performed well on our validation set with low errors, the problem of heteroscedasticity was still present. This means that our model may not be accurate in predicting prices from certain ranges of data. Another problem might be the potential “outliers”; one guideline showed no outliers while the other showed a few. However, without knowing more information about the specific outlying suburbs, we cannot prematurely remove any data. Lastly, one other problem might be the context of the data. The source of the data was collected from a specific location (Boston) at a specific time (1970s). Historical data is not always indicative of future outcomes, especially when external factors that we discovered, such as industrialization, are present. 
+
+However, our model is an appropriate medium of finding relationships between demographics, environment, and housing prices, and will nevertheless serve to be an asset to potential buyers and sellers and providing housing price insight to both parties.  
+
+
+\newpage
+
+
+
+
+
+
+
+
+# References
+
+[1] About the Charles River. (2018, April 26). Retrieved from https://www.epa.gov/charlesriver/about-charles-river
+
+[2] Harrison, D., Jr., & Rubinfield, D. L. (2004, July 28). Hedonic housing prices and the demand for clean air. Retrieved from https://www.sciencedirect.com/science/article/pii/0095069678900062
+
+[3] Weinberger, Barry, Laskin, E., D., Laskin, & D., J. (2001, January 01). Toxicology of Inhaled Nitric Oxide. Retrieved from https://academic.oup.com/toxsci/article/59/1/5/1658774
+
+[4] Why Black Neighborhoods Are Valued Less Than Other Neighborhoods. (n.d.). Retrieved from https://nextcity.org/daily/entry/why-black-neighborhoods-are-valued-less-than-other-neighborhoods
+
+
+
